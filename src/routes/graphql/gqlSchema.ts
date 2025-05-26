@@ -7,11 +7,11 @@ import {
   GraphQLBoolean,
   GraphQLInt,
   GraphQLFloat,
+  GraphQLInputObjectType
 } from 'graphql';
 import { resolvers } from './resolvers.js';
 import { UUID, MemberTypeId } from './scalars.js';
 
-// MemberType
 const MemberType = new GraphQLObjectType({
   name: 'MemberType',
   fields: () => ({
@@ -21,7 +21,6 @@ const MemberType = new GraphQLObjectType({
   }),
 });
 
-// Profile
 const ProfileType = new GraphQLObjectType({
   name: 'Profile',
   fields: () => ({
@@ -35,7 +34,6 @@ const ProfileType = new GraphQLObjectType({
   }),
 });
 
-// Post
 const PostType = new GraphQLObjectType({
   name: 'Post',
   fields: () => ({
@@ -45,7 +43,6 @@ const PostType = new GraphQLObjectType({
   }),
 });
 
-// User
 const UserType = new GraphQLObjectType({
   name: 'User',
   fields: () => ({
@@ -65,7 +62,59 @@ const UserType = new GraphQLObjectType({
   }),
 });
 
-// Root Query
+const CreateUserInput = new GraphQLInputObjectType({
+  name: 'CreateUserInput',
+  fields: {
+    name: { type: new GraphQLNonNull(GraphQLString) },
+    balance: { type: new GraphQLNonNull(GraphQLFloat) },
+  },
+});
+
+const CreatePostInput = new GraphQLInputObjectType({
+  name: 'CreatePostInput',
+  fields: {
+    title: { type: new GraphQLNonNull(GraphQLString) },
+    content: { type: new GraphQLNonNull(GraphQLString) },
+    authorId: { type: new GraphQLNonNull(UUID) },
+  },
+});
+
+const CreateProfileInput = new GraphQLInputObjectType({
+  name: 'CreateProfileInput',
+  fields: {
+    userId: { type: new GraphQLNonNull(UUID) },
+    isMale: { type: GraphQLBoolean },
+    yearOfBirth: { type: GraphQLInt },
+    memberTypeId: { type: new GraphQLNonNull(MemberTypeId) },
+  },
+});
+
+const ChangeUserInput = new GraphQLInputObjectType({
+  name: 'ChangeUserInput',
+  fields: {
+    name: { type: GraphQLString },
+    balance: { type: GraphQLFloat },
+  },
+});
+
+const ChangePostInput = new GraphQLInputObjectType({
+  name: 'ChangePostInput',
+  fields: {
+    title: { type: GraphQLString },
+    content: { type: GraphQLString },
+  },
+});
+
+const ChangeProfileInput = new GraphQLInputObjectType({
+  name: 'ChangeProfileInput',
+  fields: {
+    userId: { type: UUID },
+    isMale: { type: GraphQLBoolean },
+    yearOfBirth: { type: GraphQLInt },
+    memberTypeId: { type: MemberTypeId },
+  },
+});
+
 const QueryType = new GraphQLObjectType({
   name: 'Query',
   fields: () => ({
@@ -108,34 +157,90 @@ const QueryType = new GraphQLObjectType({
   }),
 });
 
-// Root Mutation
 const MutationType = new GraphQLObjectType({
   name: 'Mutation',
   fields: () => ({
     createUser: {
       type: UserType,
       args: {
-        name: { type: new GraphQLNonNull(GraphQLString) },
-        balance: { type: new GraphQLNonNull(GraphQLFloat) },
+        dto: { type: new GraphQLNonNull(CreateUserInput) },
       },
       resolve: resolvers.mutation.createUser,
     },
     createPost: {
       type: PostType,
       args: {
-        title: { type: new GraphQLNonNull(GraphQLString) },
-        content: { type: new GraphQLNonNull(GraphQLString) },
-        authorId: { type: new GraphQLNonNull(UUID) },
+        dto: { type: new GraphQLNonNull(CreatePostInput) },
       },
       resolve: resolvers.mutation.createPost,
     },
-    subscribeTo: {
+    createProfile: {
+      type: ProfileType,
+      args: {
+        dto: { type: new GraphQLNonNull(CreateProfileInput) },
+      },
+      resolve: resolvers.mutation.createProfile,
+    },
+    changeUser: {
       type: UserType,
       args: {
-        authorId: { type: new GraphQLNonNull(UUID) },
-        subscriberId: { type: new GraphQLNonNull(UUID) },
+        id: { type: new GraphQLNonNull(UUID) },
+        dto: { type: new GraphQLNonNull(ChangeUserInput) },
       },
-      resolve: resolvers.mutation.subscribe,
+      resolve: resolvers.mutation.changeUser,
+    },
+    changePost: {
+      type: PostType,
+      args: {
+        id: { type: new GraphQLNonNull(UUID) },
+        dto: { type: new GraphQLNonNull(ChangePostInput) },
+      },
+      resolve: resolvers.mutation.changePost,
+    },
+    changeProfile: {
+      type: ProfileType,
+      args: {
+        id: { type: new GraphQLNonNull(UUID) },
+        dto: { type: new GraphQLNonNull(ChangeProfileInput) },
+      },
+      resolve: resolvers.mutation.changeProfile,
+    },
+    deleteUser: {
+      type: GraphQLBoolean,
+      args: {
+        id: { type: new GraphQLNonNull(UUID) },
+      },
+      resolve: resolvers.mutation.deleteUser,
+    },
+    deletePost: {
+      type: GraphQLBoolean,
+      args: {
+        id: { type: new GraphQLNonNull(UUID) },
+      },
+      resolve: resolvers.mutation.deletePost,
+    },
+    deleteProfile: {
+      type: GraphQLBoolean,
+      args: {
+        id: { type: new GraphQLNonNull(UUID) },
+      },
+      resolve: resolvers.mutation.deleteProfile,
+    },
+    subscribeTo: {
+      type: GraphQLBoolean,
+      args: {
+        userId: { type: new GraphQLNonNull(UUID) },
+        authorId: { type: new GraphQLNonNull(UUID) },
+      },
+      resolve: resolvers.mutation.subscribeTo,
+    },
+    unsubscribeFrom: {
+      type: GraphQLBoolean,
+      args: {
+        userId: { type: new GraphQLNonNull(UUID) },
+        authorId: { type: new GraphQLNonNull(UUID) },
+      },
+      resolve: resolvers.mutation.unsubscribeFrom,
     },
   }),
 });

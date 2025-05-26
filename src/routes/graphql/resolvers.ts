@@ -75,38 +75,113 @@ export const resolvers = {
   mutation: {
     createUser: async (
       _: unknown,
-      args: { name: string; balance: number }
+      args: { dto: { name: string; balance: number } }
     ): Promise<User> =>
       prisma.user.create({
-        data: {
-          name: args.name,
-          balance: args.balance,
-        },
+        data: args.dto,
       }),
+
+    changeUser: async (
+      _: unknown,
+      args: { id: string; dto: Partial<{ name: string; balance: number }> }
+    ): Promise<User> =>
+      prisma.user.update({
+        where: { id: args.id },
+        data: args.dto,
+      }),
+
+    deleteUser: async (
+      _: unknown,
+      args: { id: string }
+    ): Promise<boolean> => {
+      await prisma.user.delete({ where: { id: args.id } });
+      return true;
+    },
 
     createPost: async (
       _: unknown,
-      args: { title: string; content: string; authorId: string }
+      args: { dto: { title: string; content: string; authorId: string } }
     ): Promise<Post> =>
       prisma.post.create({
+        data: args.dto,
+      }),
+
+    changePost: async (
+      _: unknown,
+      args: { id: string; dto: Partial<{ title: string; content: string }> }
+    ): Promise<Post> =>
+      prisma.post.update({
+        where: { id: args.id },
+        data: args.dto,
+      }),
+
+    deletePost: async (
+      _: unknown,
+      args: { id: string }
+    ): Promise<boolean> => {
+      await prisma.post.delete({ where: { id: args.id } });
+      return true;
+    },
+
+    createProfile: async (
+      _: unknown,
+      args: { dto: { userId: string; isMale?: boolean; yearOfBirth?: number; memberTypeId: string } }
+    ): Promise<Profile> =>
+      prisma.profile.create({
         data: {
-          title: args.title,
-          content: args.content,
-          authorId: args.authorId,
+          ...args.dto,
+          isMale: args.dto.isMale ?? false,
+          yearOfBirth: args.dto.yearOfBirth ?? 2000,
         },
       }),
 
-    subscribe: async (
+    changeProfile: async (
       _: unknown,
-      args: { authorId: string; subscriberId: string }
-    ): Promise<User> => {
+      args: { id: string; dto: Partial<{ userId: string; isMale?: boolean; yearOfBirth?: number; memberTypeId?: string }> }
+    ): Promise<Profile> =>
+      prisma.profile.update({
+        where: { id: args.id },
+        data: {
+          ...args.dto,
+          isMale: args.dto.isMale ?? false,
+          yearOfBirth: args.dto.yearOfBirth ?? 2000,
+        },
+      }),
+
+    deleteProfile: async (
+      _: unknown,
+      args: { id: string }
+    ): Promise<boolean> => {
+      await prisma.profile.delete({ where: { id: args.id } });
+      return true;
+    },
+
+    subscribeTo: async (
+      _: unknown,
+      args: { userId: string; authorId: string }
+    ): Promise<boolean> => {
       await prisma.subscribersOnAuthors.create({
         data: {
+          subscriberId: args.userId,
           authorId: args.authorId,
-          subscriberId: args.subscriberId,
         },
       });
-      return prisma.user.findUniqueOrThrow({ where: { id: args.subscriberId } });
+      return true;
+    },
+
+    unsubscribeFrom: async (
+      _: unknown,
+      args: { userId: string; authorId: string }
+    ): Promise<boolean> => {
+      await prisma.subscribersOnAuthors.delete({
+        where: {
+          subscriberId_authorId: {
+            subscriberId: args.userId,
+            authorId: args.authorId,
+          },
+        },
+      });
+      return true;
     },
   },
 };
