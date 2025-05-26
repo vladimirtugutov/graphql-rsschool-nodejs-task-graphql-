@@ -140,11 +140,6 @@ const MutationType = new GraphQLObjectType({
   }),
 });
 
-// Debug: print registered resolver keys
-console.log('[DEBUG] resolvers.query keys:', Object.keys(resolvers.query || {}));
-console.log('[DEBUG] resolvers.user keys:', Object.keys(resolvers.user || {}));
-console.log('[DEBUG] resolvers.profile keys:', Object.keys(resolvers.profile || {}));
-
 export const schema = new GraphQLSchema({
   query: QueryType,
   mutation: MutationType,

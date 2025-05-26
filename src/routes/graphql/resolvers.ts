@@ -21,15 +21,10 @@ export const resolvers = {
   },
 
   user: {
-    // profile: async (parent: any) => {
-    //   return prisma.profile.findUnique({
-    //     where: { userId: parent.id },
-    //   });
-    // },
     profile: async (parent: any) => {
       return prisma.profile.findUnique({
         where: { userId: parent.id },
-        include: { memberType: true }, // <== это загружает всю вложку, если нужно
+        include: { memberType: true },
       });
     },
     posts: async (parent: any) => {
@@ -53,7 +48,6 @@ export const resolvers = {
 
   profile: {
     memberType: async (parent: any) => {
-      console.log('[DEBUG] profile.memberType parent:', parent);
       return prisma.memberType.findUnique({
         where: { id: parent.memberTypeId },
       });
