@@ -1,0 +1,7 @@
+{
+  memberTypes {
+    id
+    discount
+    postsLimitPerMonth
+  }
+}
