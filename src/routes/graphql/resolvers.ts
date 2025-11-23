@@ -1,7 +1,29 @@
-import type { PrismaClient, User, Post, Profile, MemberType } from '@prisma/client';
+import type { PrismaClient, User, Post, Profile, MemberType, Prisma } from '@prisma/client';
 import type { Loaders } from './dataloaders.js';
 import type { GraphQLResolveInfo } from 'graphql';
 import { parseResolveInfo } from 'graphql-parse-resolve-info';
+
+type UserIncludeWithSubs = Prisma.UserInclude & {
+  userSubscribedTo?: boolean | object;
+  subscribedToUser?: boolean | object;
+};
+
+type SubscriberWithAuthor = {
+  subscriberId: string;
+  authorId: string;
+  author: User;
+};
+
+type SubscriberWithSubscriber = {
+  subscriberId: string;
+  authorId: string;
+  subscriber: User;
+};
+
+type UserWithSubs = User & {
+  userSubscribedTo?: SubscriberWithAuthor[];
+  subscribedToUser?: SubscriberWithSubscriber[];
+};
 
 export const resolvers = {
   query: {
@@ -17,7 +39,7 @@ export const resolvers = {
       const needsUserSubscribedTo = 'userSubscribedTo' in fields;
       const needsSubscribedToUser = 'subscribedToUser' in fields;
       
-      const include: any = {};
+      const include: UserIncludeWithSubs = {};
       if (needsUserSubscribedTo) {
         include.userSubscribedTo = true;
       }
@@ -33,12 +55,14 @@ export const resolvers = {
         context.loaders.userById.prime(user.id, user);
         
         if ('userSubscribedTo' in user && Array.isArray(user.userSubscribedTo)) {
-          const subs = (user as any).userSubscribedTo.map((s: any) => s.author);
+          const userWithSubs = user as UserWithSubs;
+          const subs = userWithSubs.userSubscribedTo!.map(s => s.author);
           context.loaders.subsBySubscriberId.prime(user.id, subs);
         }
         
         if ('subscribedToUser' in user && Array.isArray(user.subscribedToUser)) {
-          const subs = (user as any).subscribedToUser.map((s: any) => s.subscriber);
+          const userWithSubs = user as UserWithSubs;
+          const subs = userWithSubs.subscribedToUser!.map(s => s.subscriber);
           context.loaders.subsByAuthorId.prime(user.id, subs);
         }
       });
