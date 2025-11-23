@@ -10,9 +10,10 @@ export function createLoaders(prisma: PrismaClient) {
       return authorIds.map((id) => posts.filter((p) => p.authorId === id));
     }),
 
-    profileByUserId: new DataLoader<string, Profile | null>(async (userIds) => {
+    profileByUserId: new DataLoader<string, (Profile & { memberType: MemberType }) | null>(async (userIds) => {
       const profiles = await prisma.profile.findMany({
         where: { userId: { in: userIds as string[] } },
+        include: { memberType: true },
       });
       return userIds.map((id) => profiles.find((p) => p.userId === id) ?? null);
     }),

@@ -1,4 +1,5 @@
 import type { PrismaClient, User, Post, Profile, MemberType } from '@prisma/client';
+import type { Loaders } from './dataloaders.js';
 
 export const resolvers = {
   query: {
@@ -59,43 +60,34 @@ export const resolvers = {
     profile: (
       parent: User,
       _: unknown,
-      context: { loaders: any }
+      context: { loaders: Loaders }
     ): Promise<(Profile & { memberType: MemberType }) | null> =>
       context.loaders.profileByUserId.load(parent.id),
 
-    posts: (parent: User, _: unknown, context: { loaders: any }): Promise<Post[]> =>
-      context.loaders.postsByAuthorId.load(parent.id),
-
-    userSubscribedTo: async (
+    posts: (
       parent: User,
       _: unknown,
-      context: { prisma: PrismaClient }
-    ): Promise<User[]> => {
-      const subscriptions = await context.prisma.subscribersOnAuthors.findMany({
-        where: { subscriberId: parent.id },
-        include: { author: true },
-      });
-      return subscriptions.map((s) => s.author);
-    },
+      context: { loaders: Loaders }
+    ): Promise<Post[]> => context.loaders.postsByAuthorId.load(parent.id),
 
-    subscribedToUser: async (
+    userSubscribedTo: (
       parent: User,
       _: unknown,
-      context: { prisma: PrismaClient }
-    ): Promise<User[]> => {
-      const subscribers = await context.prisma.subscribersOnAuthors.findMany({
-        where: { authorId: parent.id },
-        include: { subscriber: true },
-      });
-      return subscribers.map((s) => s.subscriber);
-    },
+      context: { loaders: Loaders }
+    ): Promise<User[]> => context.loaders.subsBySubscriberId.load(parent.id),
+
+    subscribedToUser: (
+      parent: User,
+      _: unknown,
+      context: { loaders: Loaders }
+    ): Promise<User[]> => context.loaders.subsByAuthorId.load(parent.id),
   },
 
   profile: {
     memberType: (
       parent: Profile,
       _: unknown,
-      context: { loaders: any }
+      context: { loaders: Loaders }
     ): Promise<MemberType | null> => context.loaders.memberTypeById.load(parent.memberTypeId),
   },
 
