@@ -1,13 +1,50 @@
 import type { PrismaClient, User, Post, Profile, MemberType } from '@prisma/client';
 import type { Loaders } from './dataloaders.js';
+import type { GraphQLResolveInfo } from 'graphql';
+import { parseResolveInfo } from 'graphql-parse-resolve-info';
 
 export const resolvers = {
   query: {
     users: async (
       _: unknown,
       __: unknown,
-      context: { prisma: PrismaClient }
-    ): Promise<User[]> => context.prisma.user.findMany(),
+      context: { prisma: PrismaClient; loaders: Loaders },
+      info: GraphQLResolveInfo
+    ): Promise<User[]> => {
+      const parsedInfo = parseResolveInfo(info);
+      const fields = parsedInfo?.fieldsByTypeName?.User || {};
+      
+      const needsUserSubscribedTo = 'userSubscribedTo' in fields;
+      const needsSubscribedToUser = 'subscribedToUser' in fields;
+      
+      const include: any = {};
+      if (needsUserSubscribedTo) {
+        include.userSubscribedTo = true;
+      }
+      if (needsSubscribedToUser) {
+        include.subscribedToUser = true;
+      }
+      
+      const users = await context.prisma.user.findMany({
+        include: Object.keys(include).length > 0 ? include : undefined,
+      });
+      
+      users.forEach(user => {
+        context.loaders.userById.prime(user.id, user);
+        
+        if ('userSubscribedTo' in user && Array.isArray(user.userSubscribedTo)) {
+          const subs = (user as any).userSubscribedTo.map((s: any) => s.author);
+          context.loaders.subsBySubscriberId.prime(user.id, subs);
+        }
+        
+        if ('subscribedToUser' in user && Array.isArray(user.subscribedToUser)) {
+          const subs = (user as any).subscribedToUser.map((s: any) => s.subscriber);
+          context.loaders.subsByAuthorId.prime(user.id, subs);
+        }
+      });
+      
+      return users;
+    },
 
     user: async (
       _: unknown,
