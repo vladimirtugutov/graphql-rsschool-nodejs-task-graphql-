@@ -1,6 +1,5 @@
 import { createLoaders } from './dataloaders.js';
 import { FastifyPluginAsync } from 'fastify';
-import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { graphql, parse, validate, specifiedRules } from 'graphql';
 import depthLimit from 'graphql-depth-limit';
 import { schema } from './gqlSchema.js';
