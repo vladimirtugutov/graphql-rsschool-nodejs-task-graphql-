@@ -7,12 +7,27 @@ import {
   GraphQLBoolean,
   GraphQLInt,
   GraphQLFloat,
-  GraphQLInputObjectType
+  GraphQLInputObjectType,
+  GraphQLFieldResolver,
 } from 'graphql';
+import { PrismaClient, User, MemberType as MemberTypeModel } from '@prisma/client';
 import { resolvers } from './resolvers.js';
 import { UUID, MemberTypeId } from './scalars.js';
+import { createLoaders } from './dataloaders.js';
 
-const MemberType = new GraphQLObjectType({
+type GqlContext = {
+  prisma: PrismaClient;
+  loaders: ReturnType<typeof createLoaders>;
+};
+
+type Resolver<TSource, TArgs = {}, TResult = any> = GraphQLFieldResolver<
+  TSource,
+  GqlContext,
+  TArgs,
+  TResult
+>;
+
+const MemberType = new GraphQLObjectType<MemberTypeModel, GqlContext>({
   name: 'MemberType',
   fields: () => ({
     id: { type: new GraphQLNonNull(UUID) },
@@ -29,7 +44,7 @@ const ProfileType = new GraphQLObjectType({
     yearOfBirth: { type: GraphQLInt },
     memberType: {
       type: MemberType,
-      resolve: resolvers.profile.memberType,
+      resolve: resolvers.profile.memberType as Resolver<any>,
     },
   }),
 });
@@ -43,21 +58,27 @@ const PostType = new GraphQLObjectType({
   }),
 });
 
-const UserType = new GraphQLObjectType({
+const UserType = new GraphQLObjectType<User, GqlContext>({
   name: 'User',
   fields: () => ({
     id: { type: new GraphQLNonNull(UUID) },
     name: { type: GraphQLString },
     balance: { type: GraphQLFloat },
-    profile: { type: ProfileType, resolve: resolvers.user.profile },
-    posts: { type: new GraphQLList(PostType), resolve: resolvers.user.posts },
+    profile: {
+      type: ProfileType,
+      resolve: resolvers.user.profile as Resolver<User>,
+    },
+    posts: {
+      type: new GraphQLList(PostType),
+      resolve: resolvers.user.posts as Resolver<User>,
+    },
     userSubscribedTo: {
       type: new GraphQLList(UserType),
-      resolve: resolvers.user.userSubscribedTo,
+      resolve: resolvers.user.userSubscribedTo as Resolver<User>,
     },
     subscribedToUser: {
       type: new GraphQLList(UserType),
-      resolve: resolvers.user.subscribedToUser,
+      resolve: resolvers.user.subscribedToUser as Resolver<User>,
     },
   }),
 });
@@ -115,71 +136,65 @@ const ChangeProfileInput = new GraphQLInputObjectType({
   },
 });
 
-const QueryType = new GraphQLObjectType({
+const QueryType = new GraphQLObjectType<any, GqlContext>({
   name: 'Query',
   fields: () => ({
     users: {
       type: new GraphQLList(UserType),
-      resolve: resolvers.query.users,
+      resolve: resolvers.query.users as Resolver<any>,
     },
     user: {
       type: UserType,
       args: { id: { type: new GraphQLNonNull(UUID) } },
-      resolve: resolvers.query.user,
+      resolve: resolvers.query.user as Resolver<any, { id: string }>,
     },
     posts: {
       type: new GraphQLList(PostType),
-      resolve: resolvers.query.posts,
+      resolve: resolvers.query.posts as Resolver<any>,
     },
     post: {
       type: PostType,
       args: { id: { type: new GraphQLNonNull(UUID) } },
-      resolve: resolvers.query.post,
+      resolve: resolvers.query.post as Resolver<any, { id: string }>,
     },
     memberTypes: {
       type: new GraphQLList(MemberType),
-      resolve: resolvers.query.memberTypes,
+      resolve: resolvers.query.memberTypes as Resolver<any>,
     },
     memberType: {
       type: MemberType,
       args: { id: { type: new GraphQLNonNull(MemberTypeId) } },
-      resolve: resolvers.query.memberType,
+      resolve: resolvers.query.memberType as Resolver<any, { id: string }>,
     },
     profiles: {
       type: new GraphQLList(ProfileType),
-      resolve: resolvers.query.profiles,
+      resolve: resolvers.query.profiles as Resolver<any>,
     },
     profile: {
       type: ProfileType,
       args: { id: { type: new GraphQLNonNull(UUID) } },
-      resolve: resolvers.query.profile,
+      resolve: resolvers.query.profile as Resolver<any, { id: string }>,
     },
   }),
 });
 
-const MutationType = new GraphQLObjectType({
+const MutationType = new GraphQLObjectType<any, GqlContext>({
   name: 'Mutation',
   fields: () => ({
     createUser: {
       type: UserType,
-      args: {
-        dto: { type: new GraphQLNonNull(CreateUserInput) },
-      },
-      resolve: resolvers.mutation.createUser,
+      args: { dto: { type: new GraphQLNonNull(CreateUserInput) } },
+      resolve: resolvers.mutation.createUser as Resolver<any, { dto: any }>,
     },
     createPost: {
       type: PostType,
-      args: {
-        dto: { type: new GraphQLNonNull(CreatePostInput) },
-      },
-      resolve: resolvers.mutation.createPost,
+      args: { dto: { type: new GraphQLNonNull(CreatePostInput) } },
+      resolve: resolvers.mutation.createPost as Resolver<any, { dto: any }>,
     },
     createProfile: {
       type: ProfileType,
-      args: {
-        dto: { type: new GraphQLNonNull(CreateProfileInput) },
-      },
-      resolve: resolvers.mutation.createProfile,
+      args: { dto: { type: new GraphQLNonNull(CreateProfileInput) } },
+      resolve: resolvers.mutation.createProfile as Resolver<any, { dto: any }>,
     },
     changeUser: {
       type: UserType,
@@ -187,7 +202,7 @@ const MutationType = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(UUID) },
         dto: { type: new GraphQLNonNull(ChangeUserInput) },
       },
-      resolve: resolvers.mutation.changeUser,
+      resolve: resolvers.mutation.changeUser as Resolver<any, { id: string; dto: any }>,
     },
     changePost: {
       type: PostType,
@@ -195,7 +210,7 @@ const MutationType = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(UUID) },
         dto: { type: new GraphQLNonNull(ChangePostInput) },
       },
-      resolve: resolvers.mutation.changePost,
+      resolve: resolvers.mutation.changePost as Resolver<any, { id: string; dto: any }>,
     },
     changeProfile: {
       type: ProfileType,
@@ -203,28 +218,22 @@ const MutationType = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(UUID) },
         dto: { type: new GraphQLNonNull(ChangeProfileInput) },
       },
-      resolve: resolvers.mutation.changeProfile,
+      resolve: resolvers.mutation.changeProfile as Resolver<any, { id: string; dto: any }>,
     },
     deleteUser: {
       type: GraphQLBoolean,
-      args: {
-        id: { type: new GraphQLNonNull(UUID) },
-      },
-      resolve: resolvers.mutation.deleteUser,
+      args: { id: { type: new GraphQLNonNull(UUID) } },
+      resolve: resolvers.mutation.deleteUser as Resolver<any, { id: string }>,
     },
     deletePost: {
       type: GraphQLBoolean,
-      args: {
-        id: { type: new GraphQLNonNull(UUID) },
-      },
-      resolve: resolvers.mutation.deletePost,
+      args: { id: { type: new GraphQLNonNull(UUID) } },
+      resolve: resolvers.mutation.deletePost as Resolver<any, { id: string }>,
     },
     deleteProfile: {
       type: GraphQLBoolean,
-      args: {
-        id: { type: new GraphQLNonNull(UUID) },
-      },
-      resolve: resolvers.mutation.deleteProfile,
+      args: { id: { type: new GraphQLNonNull(UUID) } },
+      resolve: resolvers.mutation.deleteProfile as Resolver<any, { id: string }>,
     },
     subscribeTo: {
       type: GraphQLBoolean,
@@ -232,7 +241,7 @@ const MutationType = new GraphQLObjectType({
         userId: { type: new GraphQLNonNull(UUID) },
         authorId: { type: new GraphQLNonNull(UUID) },
       },
-      resolve: resolvers.mutation.subscribeTo,
+      resolve: resolvers.mutation.subscribeTo as Resolver<any, { userId: string; authorId: string }>,
     },
     unsubscribeFrom: {
       type: GraphQLBoolean,
@@ -240,7 +249,7 @@ const MutationType = new GraphQLObjectType({
         userId: { type: new GraphQLNonNull(UUID) },
         authorId: { type: new GraphQLNonNull(UUID) },
       },
-      resolve: resolvers.mutation.unsubscribeFrom,
+      resolve: resolvers.mutation.unsubscribeFrom as Resolver<any, { userId: string; authorId: string }>,
     },
   }),
 });
